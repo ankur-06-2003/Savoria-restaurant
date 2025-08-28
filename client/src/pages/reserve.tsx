@@ -25,22 +25,46 @@ export default function ReservePage() {
   const { toast } = useToast();
   const { cartItems, totalPrice, clearCart } = useCart();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // reserve.tsx (only changes shown)
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  try {
+    // Combine reservation form + order
+    const reservationData = {
+      ...formData,
+      cart: cartItems,
+      totalPrice,
+    };
+
+    // Send to backend
+    const response = await fetch("/api/reserve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(reservationData),
+    });
+
+    if (!response.ok) throw new Error("Failed to save reservation");
+
+    const savedReservation = await response.json();
+
     if (cartItems.length > 0) {
       clearCart();
       toast({
         title: "Reservation & Order Confirmed!",
-        description: `Thank you ${formData.firstName}! Your table reservation and order for $${totalPrice.toFixed(2)} has been confirmed. We'll contact you shortly.`,
+        description: `Thank you ${formData.firstName}! Your table reservation and order for $${totalPrice.toFixed(
+          2
+        )} has been saved with ID: ${savedReservation.id}.`,
       });
     } else {
       toast({
         title: "Reservation Confirmed!",
-        description: `Thank you ${formData.firstName}! Your table reservation has been confirmed. We'll contact you shortly.`,
+        description: `Thank you ${formData.firstName}! Your table reservation has been saved with ID: ${savedReservation.id}.`,
       });
     }
-    
+
+    // reset form
     setFormData({
       firstName: "",
       lastName: "",
@@ -51,7 +75,15 @@ export default function ReservePage() {
       guests: "",
       message: "",
     });
-  };
+  } catch (err: any) {
+    toast({
+      title: "Error",
+      description: err.message || "Something went wrong. Please try again.",
+      variant: "destructive",
+    });
+  }
+};
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
